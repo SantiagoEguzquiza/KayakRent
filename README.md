@@ -128,6 +128,45 @@ En etapa de planificación / implementación inicial.
 
 ---
 
+## Git: subir cambios
+
+Comandos para subir commits al remoto:
+
+```bash
+git add .
+git commit -m "chore: base project structure"
+git push origin main
+```
+
+### "Nothing to commit" / "Nothing to upload"
+
+Si aparece **nothing to commit, working tree clean** o que no hay nada que subir:
+
+1. **Carpetas vacías**  
+   Git no trackea carpetas vacías. Para que una carpeta exista en el repo, añade dentro al menos un archivo (por ejemplo `.gitkeep`):
+
+   ```powershell
+   New-Item -ItemType File -Path mi-carpeta-nueva/.gitkeep -Force
+   git add mi-carpeta-nueva/.gitkeep
+   git commit -m "chore: add empty dir mi-carpeta-nueva"
+   git push origin main
+   ```
+
+2. **Todo ya está commiteado**  
+   Si no tocaste ningún archivo desde el último commit, no hay cambios que agregar. Modifica o crea algún archivo y luego `git add .` y `git commit`.
+
+3. **Cambios solo en `kayakrent-maldonado`**  
+   Esa carpeta tiene su propio `.git`. Hay que hacer add/commit/push desde dentro:
+
+   ```bash
+   cd kayakrent-maldonado
+   git add .
+   git commit -m "chore: base project structure"
+   git push origin main
+   ```
+
+---
+
 ## Licencia
 
 A definir.
