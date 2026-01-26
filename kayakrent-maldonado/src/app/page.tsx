@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
-import ReservationForm from '@/components/ReservationForm'
+import ReservationForm from '@/src/components/ReservationForm'
 
 export default async function Home() {
   const { data: kayakTypes } = await supabase
