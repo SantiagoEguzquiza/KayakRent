@@ -20,6 +20,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('pickup')
   const [customLocation, setCustomLocation] = useState<string>('')
   const [homeAddress, setHomeAddress] = useState<string>('')
+  const [customerName, setCustomerName] = useState<string>('')
+  const [customerEmail, setCustomerEmail] = useState<string>('')
+  const [customerPhone, setCustomerPhone] = useState<string>('')
+  const [notes, setNotes] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
@@ -41,6 +45,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         throw new Error('Por favor completa todos los campos obligatorios')
       }
 
+      if (!customerName.trim() || !customerEmail.trim() || !customerPhone.trim()) {
+        throw new Error('Por favor completa tus datos de contacto')
+      }
+
       if (deliveryMode === 'home' && !homeAddress.trim()) {
         throw new Error('Por favor ingresa tu dirección de entrega')
       }
@@ -49,7 +57,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         throw new Error('Por favor ingresa el punto de retiro personalizado')
       }
 
-      // Aquí irá la lógica para enviar al backend/Supabase
+      // Enviar la reserva a la API
       const reservationData = {
         kayakTypeId: selectedKayak,
         date,
@@ -57,14 +65,30 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         deliveryMode,
         customLocation: deliveryMode === 'custom' ? customLocation : null,
         homeAddress: deliveryMode === 'home' ? homeAddress : null,
+        customerName,
+        customerEmail,
+        customerPhone,
+        notes: notes.trim() || null,
       }
 
-      console.log('Datos de reserva:', reservationData)
+      const response = await fetch('/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData),
+      })
 
-      // Simular envío (reemplazar con llamada real a la API)
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const data = await response.json()
 
-      setMessage({ type: 'success', text: '¡Reserva creada exitosamente! Te contactaremos pronto.' })
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear la reserva')
+      }
+
+      setMessage({ 
+        type: 'success', 
+        text: '¡Reserva creada exitosamente! Te contactaremos pronto para confirmar los detalles.' 
+      })
       
       // Limpiar formulario
       setSelectedKayak('')
@@ -73,6 +97,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
       setDeliveryMode('pickup')
       setCustomLocation('')
       setHomeAddress('')
+      setCustomerName('')
+      setCustomerEmail('')
+      setCustomerPhone('')
+      setNotes('')
 
     } catch (error) {
       setMessage({ 
@@ -250,6 +278,73 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               )}
             </div>
           </label>
+        </div>
+      </div>
+
+      {/* Datos del Cliente */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-semibold mb-4">Tus datos de contacto</h3>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="customerName" className="block text-sm font-medium mb-2">
+              Nombre completo <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="customerName"
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              required
+              placeholder="Juan Pérez"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="customerEmail" className="block text-sm font-medium mb-2">
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="customerEmail"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                required
+                placeholder="juan@ejemplo.com"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="customerPhone" className="block text-sm font-medium mb-2">
+                Teléfono <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="customerPhone"
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                required
+                placeholder="+598 99 123 456"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="notes" className="block text-sm font-medium mb-2">
+              Notas adicionales (opcional)
+            </label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Comentarios, preferencias o información adicional..."
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            />
+          </div>
         </div>
       </div>
 
