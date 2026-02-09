@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabaseClient'
+import { getSupabaseAdmin } from '@/lib/supabaseServer'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -73,15 +74,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Actualizar el stock (decrementar)
-    const { error: updateError } = await supabase
+    // Actualizar el stock (decrementar) con service role para evitar bloqueo por RLS
+    const admin = getSupabaseAdmin()
+    const updateClient = admin ?? supabase
+    const { error: updateError } = await updateClient
       .from('kayak_types')
       .update({ stock: kayakType.stock - quantity })
       .eq('id', kayakTypeId)
 
     if (updateError) {
       console.error('Error al actualizar stock:', updateError)
-      // Nota: En producción, deberías hacer rollback de la reserva aquí
+      await supabase.from('reservations').delete().eq('id', reservation.id)
+      return NextResponse.json(
+        {
+          error: admin
+            ? 'No se pudo actualizar el stock. Intenta de nuevo.'
+            : 'Configura SUPABASE_SERVICE_ROLE_KEY en .env.local para que el stock se actualice al reservar.',
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json(

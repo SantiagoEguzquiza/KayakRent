@@ -1,5 +1,15 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Configuración
+
+Para que el stock de kayaks se actualice al hacer una reserva, añade en `.env.local` la **Service Role Key** de Supabase (no la anon key):
+
+```
+SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+```
+
+Puedes copiarla en Supabase → Project Settings → API → `service_role` (secret).
+
 ## Getting Started
 
 First, run the development server:

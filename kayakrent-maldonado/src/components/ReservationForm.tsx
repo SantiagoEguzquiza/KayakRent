@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useMemo, useState } from 'react'
 
 type KayakType = { 
   id: string
@@ -14,8 +15,9 @@ type KayakType = {
 type DeliveryMode = 'pickup' | 'home' | 'custom'
 
 export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[] }) {
+  const router = useRouter()
   const [selectedKayak, setSelectedKayak] = useState<string>('')
-  const [quantity, setQuantity] = useState<number>(1)
+  const [quantity, setQuantity] = useState<string>('1')
   const [date, setDate] = useState<string>('')
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>('pickup')
   const [customLocation, setCustomLocation] = useState<string>('')
@@ -27,12 +29,22 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
 
-  // Calcular la fecha mínima (24 horas desde ahora)
-  const getMinDate = () => {
+  const minDate = useMemo(() => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     return tomorrow.toISOString().split('T')[0]
-  }
+  }, [])
+
+  const handleKayakChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedKayak(e.target.value), [])
+  const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value), [])
+  const handleQuantityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setQuantity(e.target.value), [])
+  const handleDeliveryModeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDeliveryMode(e.target.value as DeliveryMode), [])
+  const handleHomeAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setHomeAddress(e.target.value), [])
+  const handleCustomLocationChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomLocation(e.target.value), [])
+  const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value), [])
+  const handleCustomerEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerEmail(e.target.value), [])
+  const handleCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value), [])
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value), [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,7 +53,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
 
     try {
       // Validaciones
-      if (!selectedKayak || !date || quantity < 1) {
+      if (!selectedKayak || !date) {
         throw new Error('Por favor completa todos los campos obligatorios')
       }
 
@@ -57,18 +69,26 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         throw new Error('Por favor ingresa el punto de retiro personalizado')
       }
 
-      // Enviar la reserva a la API
+      const quantityNum = parseInt(quantity, 10)
+      if (quantity === '' || Number.isNaN(quantityNum) || quantityNum < 1) {
+        throw new Error('Por favor indica una cantidad válida (mínimo 1)')
+      }
+
+      // Opcionales: enviar null explícito si están vacíos o no aplican (evita filas incompletas en BD)
+      const toNull = (v: string | undefined): string | null =>
+        (v === undefined || v === '' || (typeof v === 'string' && !v.trim())) ? null : v.trim()
+
       const reservationData = {
         kayakTypeId: selectedKayak,
         date,
-        quantity,
+        quantity: quantityNum,
         deliveryMode,
-        customLocation: deliveryMode === 'custom' ? customLocation : null,
-        homeAddress: deliveryMode === 'home' ? homeAddress : null,
+        customLocation: deliveryMode === 'custom' ? toNull(customLocation) : null,
+        homeAddress: deliveryMode === 'home' ? toNull(homeAddress) : null,
         customerName,
         customerEmail,
         customerPhone,
-        notes: notes.trim() || null,
+        notes: toNull(notes),
       }
 
       const response = await fetch('/api/reservations', {
@@ -89,10 +109,13 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         type: 'success', 
         text: '¡Reserva creada exitosamente! Te contactaremos pronto para confirmar los detalles.' 
       })
-      
+
+      // Refrescar datos del servidor para que el stock se actualice en pantalla
+      router.refresh()
+
       // Limpiar formulario
       setSelectedKayak('')
-      setQuantity(1)
+      setQuantity('1')
       setDate('')
       setDeliveryMode('pickup')
       setCustomLocation('')
@@ -113,6 +136,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
   }
 
   const selectedKayakData = kayakTypes.find(k => k.id === selectedKayak)
+  const quantityDisplay = Math.max(0, parseInt(quantity, 10) || 0)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
@@ -134,9 +158,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
         <select
           id="kayak"
           name="kayakTypeId"
-          value={selectedKayak}
-          onChange={(e) => setSelectedKayak(e.target.value)}
+          value={selectedKayak ?? ''}
+          onChange={handleKayakChange}
           required
+          autoComplete="off"
           className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Seleccionar kayak...</option>
@@ -173,10 +198,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
             id="date"
             name="date"
             type="date"
-            min={getMinDate()}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
+            min={minDate}
+            value={date ?? ''}
+            onChange={handleDateChange}
             required
+            autoComplete="off"
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <p className="mt-1 text-xs text-gray-500">
@@ -193,10 +219,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
             name="quantity"
             type="number"
             min={1}
-            max={selectedKayakData?.stock || 10}
-            value={quantity}
-            onChange={(e) => setQuantity(parseInt(e.target.value))}
+            max={selectedKayakData?.stock ?? 10}
+            value={quantity ?? ''}
+            onChange={handleQuantityChange}
             required
+            autoComplete="off"
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
@@ -214,7 +241,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               name="deliveryMode"
               value="pickup"
               checked={deliveryMode === 'pickup'}
-              onChange={(e) => setDeliveryMode(e.target.value as DeliveryMode)}
+              onChange={handleDeliveryModeChange}
               className="mt-1 mr-3"
             />
             <div>
@@ -231,7 +258,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               name="deliveryMode"
               value="home"
               checked={deliveryMode === 'home'}
-              onChange={(e) => setDeliveryMode(e.target.value as DeliveryMode)}
+              onChange={handleDeliveryModeChange}
               className="mt-1 mr-3"
             />
             <div className="flex-1">
@@ -243,9 +270,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
                 <input
                   type="text"
                   placeholder="Ingresa tu dirección completa"
-                  value={homeAddress}
-                  onChange={(e) => setHomeAddress(e.target.value)}
+                  value={homeAddress ?? ''}
+                  onChange={handleHomeAddressChange}
                   required
+                  autoComplete="off"
                   className="w-full mt-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               )}
@@ -258,7 +286,7 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               name="deliveryMode"
               value="custom"
               checked={deliveryMode === 'custom'}
-              onChange={(e) => setDeliveryMode(e.target.value as DeliveryMode)}
+              onChange={handleDeliveryModeChange}
               className="mt-1 mr-3"
             />
             <div className="flex-1">
@@ -270,9 +298,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
                 <input
                   type="text"
                   placeholder="Describe el punto de encuentro"
-                  value={customLocation}
-                  onChange={(e) => setCustomLocation(e.target.value)}
+                  value={customLocation ?? ''}
+                  onChange={handleCustomLocationChange}
                   required
+                  autoComplete="off"
                   className="w-full mt-2 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                 />
               )}
@@ -292,10 +321,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
             <input
               id="customerName"
               type="text"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
+              value={customerName ?? ''}
+              onChange={handleCustomerNameChange}
               required
               placeholder="Juan Pérez"
+              autoComplete="off"
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -308,10 +338,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               <input
                 id="customerEmail"
                 type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
+                value={customerEmail ?? ''}
+                onChange={handleCustomerEmailChange}
                 required
                 placeholder="juan@ejemplo.com"
+                autoComplete="off"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -323,10 +354,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               <input
                 id="customerPhone"
                 type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                value={customerPhone ?? ''}
+                onChange={handleCustomerPhoneChange}
                 required
                 placeholder="+598 99 123 456"
+                autoComplete="off"
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -338,10 +370,11 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
             </label>
             <textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={notes ?? ''}
+              onChange={handleNotesChange}
               rows={3}
               placeholder="Comentarios, preferencias o información adicional..."
+              autoComplete="off"
               className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
             />
           </div>
@@ -360,10 +393,10 @@ export default function ReservationForm({ kayakTypes }: { kayakTypes: KayakType[
               month: 'long', 
               day: 'numeric' 
             })}</p>
-            <p><strong>Cantidad:</strong> {quantity} kayak(s)</p>
+            <p><strong>Cantidad:</strong> {quantityDisplay} kayak(s)</p>
             {selectedKayakData.price_per_day && (
               <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-2">
-                Total estimado: ${selectedKayakData.price_per_day * quantity}
+                Total estimado: ${selectedKayakData.price_per_day * quantityDisplay}
               </p>
             )}
           </div>
