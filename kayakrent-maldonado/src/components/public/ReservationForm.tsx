@@ -74,21 +74,15 @@ export default function ReservationForm({
     }
 
     if (!supabase) return
-    const { error } = await supabase
-      .from('reservations')
-      .insert({
-        kayak_type_id: form.kayak_type_id,
-        reservation_date: form.reservation_date,
-        quantity: Number(form.quantity),
-        delivery_mode: form.delivery_mode,
-        custom_location: null,
-        home_address: null,
-        customer_name: form.customer_name,
-        customer_email: form.customer_email,
-        customer_phone: form.customer_phone,
-        notes: null,
-        status: 'pending',
-      })
+    const { error } = await supabase.rpc('create_reservation_safe', {
+      p_kayak_type_id: form.kayak_type_id,
+      p_reservation_date: form.reservation_date,
+      p_quantity: Number(form.quantity),
+      p_delivery_mode: form.delivery_mode,
+      p_customer_name: form.customer_name,
+      p_customer_email: form.customer_email,
+      p_customer_phone: form.customer_phone,
+    })
 
     if (error) {
       setError(error.message)
