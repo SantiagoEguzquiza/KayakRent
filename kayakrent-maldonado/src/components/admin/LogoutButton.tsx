@@ -20,7 +20,7 @@ export default function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="text-sm text-red-600 hover:underline disabled:opacity-50"
+      className="text-sm font-medium text-red-700 hover:text-red-800 hover:underline disabled:opacity-50"
     >
       {loading ? 'Cerrando...' : 'Cerrar sesión'}
     </button>

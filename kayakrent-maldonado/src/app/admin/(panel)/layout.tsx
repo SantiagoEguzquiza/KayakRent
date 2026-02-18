@@ -17,33 +17,35 @@ export default async function AdminPanelLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-200">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r">
-        <div className="p-4 font-bold text-lg">KayakRent Admin</div>
-        <nav className="px-4 space-y-2 text-sm">
-          <a href="/admin/reservas" className="block hover:underline">
+      <aside className="w-64 bg-white border-r-2 border-gray-300 shadow-sm">
+        <div className="p-4 font-bold text-lg text-gray-900 border-b border-gray-300">
+          KayakRent Admin
+        </div>
+        <nav className="px-4 py-3 space-y-1 text-sm">
+          <a href="/admin/reservas" className="block py-2 text-gray-800 hover:text-gray-900 hover:bg-gray-100 rounded px-2">
             Reservas
           </a>
-          <a href="/admin/kayaks" className="block hover:underline">
+          <a href="/admin/kayaks" className="block py-2 text-gray-800 hover:text-gray-900 hover:bg-gray-100 rounded px-2">
             Kayaks
           </a>
-          <a href="/admin/tipos" className="block hover:underline">
+          <a href="/admin/tipos" className="block py-2 text-gray-800 hover:text-gray-900 hover:bg-gray-100 rounded px-2">
             Tipos
           </a>
         </nav>
       </aside>
 
       {/* Main */}
-      <main className="flex-1">
-        <header className="flex items-center justify-between bg-white border-b px-6 py-4">
-          <span className="text-sm text-gray-600">
+      <main className="flex-1 flex flex-col min-h-screen bg-gray-100">
+        <header className="flex items-center justify-between bg-white border-b-2 border-gray-300 px-6 py-4 shadow-sm">
+          <span className="text-sm font-medium text-gray-700">
             Panel de administración
           </span>
           <LogoutButton />
         </header>
 
-        <section className="p-6">{children}</section>
+        <section className="p-6 flex-1 text-gray-900">{children}</section>
       </main>
     </div>
   )
